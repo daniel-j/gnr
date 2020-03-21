@@ -1,0 +1,4 @@
+ffconcat version 1.0
+file 'pipe0'
+file 'pipe1'
+file 'playlist.txt'
