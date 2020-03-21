@@ -5,39 +5,43 @@ const fs = require('fs')
 const mkfifo = require('named-pipe').mkfifoPromise
 const spawn = require('child_process').spawn
 
-const threedog = require('./threedog.json')
-const songs = require('./songs.json')
+const threedog = require('./threedog')
+const songs = require('./songs')
+const dashwood = require('./dashwood')
 
 const threedogPath = "audio/threedog"
 const songsPath = "audio/songs"
+const dashwoodPath = "audio/dashwood"
+
+let variant = "male"
 
 let currentPipe = 0
-const pipeCount = 2
-let currentSong = 0
+const pipeCount = 4
 
-function shuffle(array) {
-  let currentIndex = array.length, temporaryValue, randomIndex
+function random (size) {
+  return Math.floor(Math.random() * size)
+}
 
-  // While there remain elements to shuffle...
-  while (0 !== currentIndex) {
-
-    // Pick a remaining element...
-    randomIndex = Math.floor(Math.random() * currentIndex)
-    currentIndex -= 1
-
-    // And swap it with the current element.
-    temporaryValue = array[currentIndex]
-    array[currentIndex] = array[randomIndex]
-    array[randomIndex] = temporaryValue
+function shuffle(array, retry = false) {
+  if (array.length <= 1) return array
+  let last = array[array.length - 1]
+  for (let i = array.length - 1; i > 0; i--) {
+      const j = random(i + 1);
+      [array[i], array[j]] = [array[j], array[i]]
   }
-
+  if (array.length > 1 && retry) {
+    while (array[0] === last) {
+      console.log("Reshuffling")
+      array = shuffle(array, false)
+    }
+  }
   return array
 }
 
 function streamFile (filename) {
   return new Promise((resolve, reject) => {
     const outname = "pipe" + currentPipe
-    console.log('>> Playing', filename)
+    console.log('Playing', filename)
     // return resolve()
     const proc = spawn('ffmpeg', [
       '-hide_banner', '-loglevel', 'warning', '-re', '-y',
@@ -61,17 +65,27 @@ function streamFile (filename) {
   })
 }
 
-function random (size) {
-  return Math.floor(Math.random() * size)
+function randomItem (arr, retry = false) {
+  arr.position = arr.position || 0
+  if (arr.position >= arr.length) {
+    arr.position = 0
+  }
+  if (arr.position === 0) {
+    shuffle(arr, retry)
+  }
+  return arr[arr.position++]
 }
 
-function randomItem (arr) {
-  const index = random(arr.length)
-  return arr[index]
+function sequentialItem (arr) {
+  arr.position = arr.position || 0
+  if (arr.position >= arr.length) {
+    arr.position = 0
+  }
+  return arr[arr.position++]
 }
 
-function streamRandomFile(prefix, arr) {
-  return streamFile(path.join(prefix, randomItem(arr)))
+function streamRandomFile(prefix, arr, retry = false) {
+  return streamFile(path.join(prefix, randomItem(arr, retry)))
 }
 
 async function streamList(prefix, arr) {
@@ -81,57 +95,61 @@ async function streamList(prefix, arr) {
   }
 }
 
-function getSong () {
-  if (currentSong === 0) {
-    shuffle(songs)
-  }
-
-  currentSong++
-  if (currentSong === songs.length) {
-    currentSong = 0
-  }
-
-  return songs[currentSong]
-}
-
 async function playSection (lastsong) {
   if (lastsong) {
-    await streamFile(path.join(threedogPath, threedog.musicex[lastsong]))
-  } else {
-    await streamRandomFile(threedogPath, threedog.hello)
+    console.log(">> Last song", lastsong)
+    await streamFile(path.join(threedogPath, threedog.musicextro[lastsong]))
+    lastsong = null
+  }
+  console.log(">> Hello")
+  await streamRandomFile(threedogPath, threedog.hello, true)
+
+  if (random(8) === 0) {
+    console.log(">> Dashwood intro")
+    await streamRandomFile(dashwoodPath, dashwood.intro)
+    console.log(">> Dashwood episode")
+    await streamList(dashwoodPath, sequentialItem(dashwood.episodes))
+    return await playSection()
   }
 
   let arr = ["psaintro", "newsintro"][random(2)]
 
   switch (arr) {
     case "psaintro":
-      await streamRandomFile(threedogPath, threedog[arr])
-      await streamList(threedogPath, randomItem(threedog.psainfo))
+      console.log(">> PSA intro")
+      await streamRandomFile(threedogPath, threedog[arr], true)
+      console.log(">> PSA message")
+      await streamList(threedogPath, randomItem(threedog.psainfo, true))
       break
     case "newsintro":
-      await streamRandomFile(threedogPath, threedog[arr])
-      await streamList(threedogPath, randomItem(threedog.newsstory))
+      console.log(">> News intro")
+      await streamRandomFile(threedogPath, threedog[arr], true)
+      console.log(">> News message")
+      await streamList(threedogPath, randomItem(threedog.newsstory, true))
       break
   }
 
+  console.log(">> Bye")
   await streamRandomFile(threedogPath, threedog.outro)
+  console.log(">> Music intro")
   await streamRandomFile(threedogPath, threedog.musicintro)
 
-  const songCount = 3 + random(2)
+  const songCount = 3 + random(3)
+  console.log(">> Playing", songCount, "songs")
   let song
   for (let i = 0; i < songCount; i++) {
-    song = getSong()
-    console.log('Preparing song', song)
+    song = randomItem(songs, true)
     if (i === 0 && threedog.musicpresent[song] && random(5) === 0) {
+      console.log(">> Song presentation")
       await streamFile(path.join(threedogPath, threedog.musicpresent[song]))
     }
     await streamFile(path.join(songsPath, song))
   }
-  lastsong = null
-  if (threedog.musicex[song] && random(5) === 0) {
+
+  if (threedog.musicextro[song] && random(5) === 0) {
     lastsong = song
   }
-  await playSection(lastsong)  // recursive
+  await playSection(lastsong)
 }
 
 let mkfifos = []

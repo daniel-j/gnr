@@ -1,4 +1,6 @@
 ffconcat version 1.0
 file 'pipe0'
 file 'pipe1'
+file 'pipe2'
+file 'pipe3'
 file 'playlist.txt'
