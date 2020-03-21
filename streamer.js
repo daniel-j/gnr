@@ -95,10 +95,10 @@ function getSong () {
 }
 
 async function playSection (lastsong) {
-  await streamRandomFile(threedogPath, threedog.hello)
-
   if (lastsong) {
     await streamFile(path.join(threedogPath, threedog.musicex[lastsong]))
+  } else {
+    await streamRandomFile(threedogPath, threedog.hello)
   }
 
   let arr = ["psaintro", "newsintro"][random(2)]
@@ -142,5 +142,8 @@ for (let i = 0; i < pipeCount; i++) {
   mkfifos.push(mkfifo('pipe' + i))
 }
 
-Promise.all(mkfifos).then(() => playSection())
+Promise.all(mkfifos).then(() => {
+  const output = spawn('./startffmpeg.sh', [], {stdio: 'inherit'})
+  playSection()
+})
 // playSection()
