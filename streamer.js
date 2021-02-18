@@ -5,9 +5,9 @@ const fs = require('fs')
 const spawn = require('child_process').spawn
 const http = require('http')
 
-const threedog = require('./threedog')
-const songs = require('./songs')
-const dashwood = require('./dashwood')
+const threedog = require('./playlists/threedog')
+const songs = require('./playlists/songs')
+const dashwood = require('./playlists/dashwood')
 
 const threedogPath = "audio/threedog"
 const songsPath = "audio/songs"
@@ -22,7 +22,7 @@ const queuedCallback = {
 
 function requestListener (req, res) {
   if (queuedCallback.cb) {
-    res.writeHead(200, { 'Content-Type': 'text/plain', 'X-FileName': queuedCallback.filename })
+    res.writeHead(200, { 'Content-Type': 'text/plain', 'x-filename': queuedCallback.filename })
     res.end(queuedCallback.filename)
     queuedCallback.cb()
     queuedCallback.cb = null
