@@ -2,8 +2,8 @@
 
 const path = require('path')
 const fs = require('fs')
-const mkfifo = require('named-pipe').mkfifoPromise
 const spawn = require('child_process').spawn
+const http = require('http')
 
 const threedog = require('./threedog')
 const songs = require('./songs')
@@ -13,10 +13,24 @@ const threedogPath = "audio/threedog"
 const songsPath = "audio/songs"
 const dashwoodPath = "audio/dashwood"
 
-let variant = "male"
+const config = require('./config.json')
 
-let currentPipe = 0
-const pipeCount = 4
+const queuedCallback = {
+  cb: null,
+  filename: ''
+}
+
+function requestListener (req, res) {
+  if (queuedCallback.cb) {
+    res.writeHead(200, { 'Content-Type': 'text/plain', 'X-FileName': queuedCallback.filename })
+    res.end(queuedCallback.filename)
+    queuedCallback.cb()
+    queuedCallback.cb = null
+    queuedCallback.filename = ''
+  } else {
+    res.end()
+  }
+}
 
 function random (size) {
   return Math.floor(Math.random() * size)
@@ -40,28 +54,9 @@ function shuffle(array, retry = false) {
 
 function streamFile (filename) {
   return new Promise((resolve, reject) => {
-    const outname = "pipe" + currentPipe
-    console.log('Playing', filename)
-    // return resolve()
-    const proc = spawn('ffmpeg', [
-      '-hide_banner', '-loglevel', 'warning', '-re', '-y',
-      '-i', filename,
-      '-c:a', 'pcm_s16le',
-      '-ac', 2, '-ar', 44100, '-sample_fmt', 's16',
-      '-f', 'matroska', '-map_metadata', '-1',
-      outname
-    ], {stdio: 'inherit'})
-    proc.on('error', (err) => {
-      console.error(err)
-      reject(err)
-    })
-    proc.on('exit', (code) => {
-      currentPipe++
-      if (currentPipe === pipeCount) {
-        currentPipe = 0
-      }
-      resolve()
-    })
+    console.log(filename)
+    queuedCallback.filename = filename
+    queuedCallback.cb = resolve
   })
 }
 
@@ -152,16 +147,13 @@ async function playSection (lastsong) {
   await playSection(lastsong)
 }
 
-let mkfifos = []
-for (let i = 0; i < pipeCount; i++) {
-  try {
-    fs.unlinkSync('pipe' + i)
-  } catch (err) {}
-  mkfifos.push(mkfifo('pipe' + i))
-}
-
-Promise.all(mkfifos).then(() => {
-  const output = spawn('./startffmpeg.sh', [], {stdio: 'inherit'})
+const server = http.createServer(requestListener)
+server.listen(config.port, () => {
+  console.log("Listening on port " + config.port)
   playSection()
+  const liquidsoap = spawn('liquidsoap', ['-v', 'gnr.liq', '--'], {stdio: ['inherit', 'inherit', 'inherit']})
+  liquidsoap.on('close', (code) => {
+    console.log("Liquidsoap exited with code", code)
+    server.close()
+  })
 })
-// playSection()

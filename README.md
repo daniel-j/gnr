@@ -1,15 +1,24 @@
 Galaxy News Radio
 =================
 
+This is a replication of the in-game radio station GNR from Fallout 3.
 
-npm install
+Uses [Liquidsoap](https://www.liquidsoap.info) (tested with v1.4.3)
 
-./streams.js
+Install Node.JS and set up Icecast.
 
-./startffmpeg.sh (uses pulseaudio for playback)
+Create file `config.json` with the following content:
+```json
+{
+	"port": "8013",
+	"icecast_password": "hackme"
+}
+```
 
-put audio files in audio/songs/ and audio/threedog/ from Fallout3 - Sounds.bsa and Fallout3 - Voices.bsa
+Put audio files in `audio/songs/`, `audio/threedog/` and `audio/dashwood/` from `Fallout3 - Sounds.bsa and Fallout3 - Voices.bsa`
 
-enjoy!
+Run `./streams.js`
+
+Enjoy!
 
 Tune in: https://radio.djazz.se/icecast/gnr
