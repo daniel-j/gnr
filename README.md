@@ -10,14 +10,14 @@ Install Node.JS and set up Icecast.
 Create file `config.json` with the following content:
 ```json
 {
-	"port": "8013",
-	"icecast_password": "hackme"
+  "port": "8013",
+  "icecast_password": "hackme"
 }
 ```
 
 Put audio files in `audio/songs/`, `audio/threedog/` and `audio/dashwood/` from `Fallout3 - Sounds.bsa and Fallout3 - Voices.bsa`
 
-Run `./streams.js`
+Run `npm start`
 
 Enjoy!
 
