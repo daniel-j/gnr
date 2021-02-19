@@ -1,3 +1,4 @@
 node_modules
-audio
+data/*.bsa
+out
 config.json

@@ -1,23 +1,41 @@
 #!/usr/bin/env node
 
+const fs = require('fs/promises')
 const path = require('path')
-const fs = require('fs')
 const spawn = require('child_process').spawn
 const http = require('http')
 
 const threedog = require('./playlists/threedog')
 const songs = require('./playlists/songs')
-const dashwood = require('./playlists/dashwood')
+const radioplay = require('./playlists/radioplay')
 
-const threedogPath = "audio/threedog"
-const songsPath = "audio/songs"
-const dashwoodPath = "audio/dashwood"
+const threedogPath = "out/sound/voice/fallout3.esm/maleuniquethreedog"
+const songsPath = "out/sound/songs/radio/licensed"
+const radioplayPath = "out/sound/voice/fallout3.esm/uniqueradioplay"
 
 const config = require('./config.json')
+
+let variant = 'male'
+let karma = 'good'
+let level = 1
 
 const queuedCallback = {
   cb: null,
   filename: ''
+}
+
+async function checkAudioFiles(obj, root) {
+  for (let key in obj) {
+    if (typeof obj[key] === 'string') {
+      const filename = path.join(root, obj[key])
+      // console.log("Checking", filename)
+      if ((await fs.access(filename)) !== undefined) {
+        throw new Error("File " + filename + " does not exist")
+      }
+    } else if (typeof obj[key] === 'object') {
+      await checkAudioFiles(obj[key], root)
+    }
+  }
 }
 
 function requestListener (req, res) {
@@ -100,32 +118,28 @@ async function playSection (lastsong) {
   await streamRandomFile(threedogPath, threedog.hello, true)
 
   if (random(8) === 0) {
-    console.log(">> Dashwood intro")
-    await streamRandomFile(dashwoodPath, dashwood.intro)
-    console.log(">> Dashwood episode")
-    await streamList(dashwoodPath, sequentialItem(dashwood.episodes))
+    console.log(">> Radioplay intro")
+    await streamRandomFile(radioplayPath, radioplay.intro)
+    console.log(">> Radioplay episode")
+    await streamList(radioplayPath, sequentialItem(radioplay.episodes))
     return await playSection()
   }
 
-  let arr = ["psaintro", "newsintro"][random(2)]
-
-  switch (arr) {
-    case "psaintro":
-      console.log(">> PSA intro")
-      await streamRandomFile(threedogPath, threedog[arr], true)
-      console.log(">> PSA message")
-      await streamList(threedogPath, randomItem(threedog.psainfo, true))
-      break
-    case "newsintro":
-      console.log(">> News intro")
-      await streamRandomFile(threedogPath, threedog[arr], true)
-      console.log(">> News message")
-      await streamList(threedogPath, randomItem(threedog.newsstory, true))
-      break
-  }
+  console.log(">> News intro")
+  await streamRandomFile(threedogPath, threedog.newslink, true)
+  console.log(">> News message")
+  await streamList(threedogPath, randomItem(threedog.newsstory, true))
 
   console.log(">> Bye")
   await streamRandomFile(threedogPath, threedog.outro)
+
+  if (random(2) === 0) {
+    console.log(">> PSA intro")
+    await streamRandomFile(threedogPath, threedog.psaintro, true)
+    console.log(">> PSA message")
+    await streamList(threedogPath, randomItem(threedog.psainfo, true))
+  }
+
   console.log(">> Music intro")
   await streamRandomFile(threedogPath, threedog.musicintro)
 
@@ -147,13 +161,21 @@ async function playSection (lastsong) {
   await playSection(lastsong)
 }
 
-const server = http.createServer(requestListener)
-server.listen(config.port, () => {
-  console.log("Listening on port " + config.port)
-  playSection()
-  const liquidsoap = spawn('liquidsoap', ['-v', 'gnr.liq', '--'], {stdio: ['inherit', 'inherit', 'inherit']})
-  liquidsoap.on('close', (code) => {
-    console.log("Liquidsoap exited with code", code)
-    server.close()
+Promise.all([
+  checkAudioFiles(threedog, threedogPath),
+  checkAudioFiles(radioplay, radioplayPath),
+  checkAudioFiles(songs, songsPath),
+  checkAudioFiles(Object.keys(threedog.musicextro), songsPath),
+  checkAudioFiles(Object.keys(threedog.musicpresent), songsPath)
+]).then(() => {
+  const server = http.createServer(requestListener)
+  server.listen(config.port, () => {
+    console.log("Listening on port " + config.port)
+    playSection()
+    const liquidsoap = spawn('liquidsoap', ['-v', 'gnr.liq', '--'], {stdio: ['inherit', 'inherit', 'inherit']})
+    liquidsoap.on('close', (code) => {
+      console.log("Liquidsoap exited with code", code)
+      server.close()
+    })
   })
 })

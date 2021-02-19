@@ -5,7 +5,7 @@ This is a replication of the in-game radio station GNR from Fallout 3.
 
 Uses [Liquidsoap](https://www.liquidsoap.info) (tested with v1.4.3)
 
-Install Node.JS and set up Icecast.
+Install Node.JS (and run `npm install`) and set up Icecast.
 
 Create file `config.json` with the following content:
 ```json
@@ -22,9 +22,9 @@ Create file `config.json` with the following content:
 
 ```
 
-Put audio files in `audio/songs/`, `audio/threedog/` and `audio/dashwood/` from `Fallout3 - Sounds.bsa and Fallout3 - Voices.bsa`
+Put the files `Fallout3 - Sounds.bsa`, `Fallout3 - Voices.bsa` and `BrokenSteel - Main.bsa` in the data folder, from your Fallout 3 GOTY Data folder. Run `./extract.js` to extract the audio files.
 
-Run `npm start`
+Run `npm start` to launch.
 
 Enjoy!
 

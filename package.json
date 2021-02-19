@@ -9,5 +9,7 @@
   },
   "author": "djazz",
   "license": "MIT",
-  "dependencies": {}
+  "dependencies": {
+    "bsa": "^0.1.0"
+  }
 }
