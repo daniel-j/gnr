@@ -1,18 +1,23 @@
 #!/usr/bin/env -S liquidsoap -v
 
-let config = of_json(default=[], file.contents("config.json"))
+configsrc = file.contents("config.json")
+config = json.parse(default=[("error", "json")], configsrc)
 
 def get_song() =
-    let (_, headers, _) = http.get("http://localhost:" ^ config["port"])
-    let filename = headers["x-filename"]
-    [request.create(filename)]
+    headers = http.get("http://localhost:" ^ config["port"]).headers
+    filename = headers["x-filename"]
+	if filename == "" then
+		null()
+    else
+		request.create(filename)
+	end
 end
 
-let dynamic = audio_to_stereo(request.dynamic.list(get_song))
+dynamic = audio_to_stereo(request.dynamic(get_song))
 
-let dynamic = map_metadata(fun(m) -> begin
+dynamic = map_metadata(fun(m) -> begin
     m = list.append([
-        ("title", get_process_output(
+        ("title", process.read(
             env=[("filename", m["filename"])],
             "basename -z \"$filename\""
         ))
@@ -20,6 +25,8 @@ let dynamic = map_metadata(fun(m) -> begin
     # list.iter(fun(mi) -> print(fst(mi)^": "^snd(mi)), m)
     m
 end, dynamic)
+
+dynamic = rotate([dynamic, blank(duration=0.8)])
 
 output.icecast(%mp3(stereo_mode="joint_stereo", internal_quality=0),
   host = config["icecast_host"],
