@@ -3,7 +3,7 @@ Galaxy News Radio
 
 This is a replication of the in-game radio station GNR from Fallout 3.
 
-Uses [Liquidsoap](https://www.liquidsoap.info) (tested with v1.4.3)
+Uses [Liquidsoap](https://www.liquidsoap.info) (tested with v2.0.3)
 
 Install Node.JS (and run `npm install`) and set up Icecast.
 
