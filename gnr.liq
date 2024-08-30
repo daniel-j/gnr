@@ -28,12 +28,13 @@ end, dynamic)
 
 dynamic = rotate([dynamic, blank(duration=0.8)])
 
-output.icecast(%mp3(stereo_mode="joint_stereo", internal_quality=0),
+output.icecast(%mp3.vbr(stereo_mode="joint_stereo", internal_quality=2, quality=3),
   host = config["icecast_host"],
   port = int_of_string(config["icecast_port"]),
   password = config["icecast_password"],
   mount = config["icecast_mount"],
   name = config["icecast_name"],
   description = config["icecast_description"],
+  url = config["icecast_url"],
   fallible=true,
   dynamic)

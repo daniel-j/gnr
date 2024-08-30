@@ -17,7 +17,8 @@ Create file `config.json` with the following content:
 	"icecast_mount": "gnr",
 	"icecast_name": "Galaxy News Radio",
 	"icecast_description": "Bringing you the truth, no matter how bad it hurts",
-	"icecast_password": "hackme"
+	"icecast_password": "hackme",
+	"icecast_url": "http://example.com:8000/gnr"
 }
 
 ```
